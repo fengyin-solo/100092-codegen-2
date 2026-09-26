@@ -5,12 +5,12 @@
 """
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ROUTERS
-from app.store import store
+from app.store import DEFAULT_RANGE, RANGE_DAYS, store
 
 app = FastAPI(title="实验室样品检测管理平台", version="1.0.0")
 
@@ -33,6 +33,13 @@ def health() -> dict[str, object]:
 
 
 @app.get("/api/overview")
-def overview() -> dict[str, object]:
-    """运营概览：把各业务模块的待处理量汇总成看板卡片。"""
-    return store.overview()
+def overview(
+    range: str = Query(default=DEFAULT_RANGE, description="统计区间：today / 7d / 30d / all"),
+) -> dict[str, object]:
+    """运营概览：按统计区间把各业务模块的待处理量汇总成看板卡片。"""
+    if range not in RANGE_DAYS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的统计区间「{range}」，可选：{'、'.join(RANGE_DAYS)}",
+        )
+    return store.overview(range)
